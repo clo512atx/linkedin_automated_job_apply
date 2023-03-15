@@ -5,7 +5,7 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException
+from selenium.common.exceptions import TimeoutException, NoSuchElementException
 import json
 import time
 
@@ -75,41 +75,90 @@ class ApplyLinkedin:
     def easyApply(self):
         easy_apply_button = self.driver.find_element('xpath','/html/body/div[5]/div[3]/div[4]/section/div/section/div/div/div/ul/li[9]/div/button')
         easy_apply_button.click()
-        time.sleep(2)
+        time.sleep(5)
             
-        # job_cards = self.driver.find_elements(By.XPATH, '//li[contains(@class, "jobs-search-results__list-item")]')
-        job_cards = WebDriverWait(self.driver, 20).until(EC.visibility_of_all_elements_located((By.XPATH, '//a[contains(@class, "base-card__full-link")]')))
-        print("found " + str(len(job_cards)) + " jobs")
+        job_cards = self.driver.find_elements(By.XPATH, '//li[contains(@class, "jobs-search-results__list-item")]')
+
         for job in job_cards:
-            print(job)
-        
-        job_number = 1
-        for job in job_cards:
-            print("looking at job " + str(job_number) + " out of " + str(len(job_cards)))
-            apply_now_button = job.find_element(By.XPATH, '//button[contains(@class, "jobs-apply-button")]') 
-            apply_now_button.click()
+            submitted = False
+            job.click()
+            time.sleep(2)
             try:
-                phone_number_input = self.driver.find_element(By.XPATH, '//input[contains(@id, "phoneNumber")]')
-                phone_number_input.send_keys("2677132751")
-            except:
-                print("unable to find phone number input!")
-                # need to change this so it clicks out of the Easy Apply form
+                apply_now_button = job.find_element(By.XPATH, '//button[contains(@class, "jobs-apply-button")]') 
+                apply_now_button.click()
+            except NoSuchElementException:
+                print("we already applied to this job, going to the next submission")
                 continue
             
-            try:
-                # next_button = self.driver.find_element(By.XPATH, '//button[@contains(@class, "artdeco-button--primary")]')
-                next_button = job.find_element(By.CSS_SELECTOR, "button span[class='artdeco-button__text']").click()
-                next_button.click()
+            while not submitted:
                 try:
-                    upload_resume = WebDriverWait(self.driver, 20).until(EC.visibility_of_element_located((By.XPATH, "//span[contains(text(), 'Upload resume')]")))
-                    upload_resume.click()
+                    phone_number_input = self.driver.find_element(By.XPATH, '//input[contains(@id, "phoneNumber")]')
+                    phone_number_input.send_keys("2677132751")
                 except:
-                    print("can't upload resume")
-            except:
-                print("unable to find next button, exiting application")
-                self.exit_application()
+                    print("unable to find phone number input!")
+
+                try:
+                    already_uploaded_resume = self.driver.find_element(By.XPATH, '//span[text()="Choose"]')
+                    already_uploaded_resume.click()
+                    time.sleep(1)
+                except:
+                    print("nowhere to select resume, trying something else")
+        
+                # language proficiency
+                try:
+                    select_proficiency_prompts = self.driver.find_elements(By.XPATH, '//select[@aria-required="true"]/option[text()="Native or bilingual"]')
+                    for select_proficiency in select_proficiency_prompts:
+                        select_proficiency.click()
+                except:
+                    print("no language selection")
+
+                # yes/no
+                try:
+                    select_yes_prompts = self.driver.find_elements(By.XPATH, '//select[@aria-required="true"]/option[text()="Yes"]')
+                    for select_yes in select_yes_prompts:
+                        select_yes_prompts.click()
+                except:
+                    print("no yes/no selection")
+
+                # years of experience
+                try:
+                    # years_of_exp_labels = self.driver.find_elements(By.XPATH, '//label[contains(@for, "single-line-text-form-component")]')
+                    # for years_of_exp in years_of_exp_labels:
+                    #     prompt = years_of_exp.get_attribute('innerHTML').lower()
+                    #     if "years" in prompt:
+                    #         years_of_exp_input = prompt.find_element(By.XPATH, '//input[contains(@id, "single-line-text-form-component")]')
+                    #         years_of_exp_input.send_keys("6")
+                    years_of_exp_labels = self.driver.find_elements(By.XPATH, '//input[contains(@for, "single-line-text-form-component")]')
+                    for years_of_exp in years_of_exp_labels:
+                        years_of_exp.send_keys("6")
+                except:
+                    print("no years of experience prompts")
+
+                try:
+                    follow_company_checkbox = self.driver.find_element(By.XPATH, '//input[contains(@id, "follow-company-checkbox")]')
+                    follow_company_checkbox.click()
+                except:
+                    print("no follow company checkbox available to unclick, trying something else")
+
+                try:
+                    submit_application = job.find_element(By.XPATH, '//button[contains(@aria-label, "Submit application")]')
+                    submit_application.click()
+                    submitted = True
+                except:
+                    print("unable to find submit button")
+                time.sleep(1)
+
+                try:
+                    next_button = self.driver.find_element(By.XPATH, '//button[contains(@class, "artdeco-button--primary")]')
+                    next_button.click()
+                except:
+                    print("unable to find next button")
+                time.sleep(1)
+
+                time.sleep(5)
+            time.sleep(2)
+            self.exit_application()
             time.sleep(3)
-            job_number += 1
 
         # allfilter_button = self.driver.find_element('xpath','/html/body/div[5]/div[3]/div[4]/section/div/section/div/div/div/div/div/button')
         # allfilter_button.click()
