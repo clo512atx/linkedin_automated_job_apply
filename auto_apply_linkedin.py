@@ -5,7 +5,7 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException, NoSuchElementException
+from selenium.common.exceptions import TimeoutException, NoSuchElementException, ElementNotInteractableException
 import json
 import time
 
@@ -37,7 +37,7 @@ class ApplyLinkedin:
         time.sleep(2)
         
         password.send_keys(Keys.RETURN)
-        time.sleep(5)
+        time.sleep(20)
 
     def jobSearch(self):
 #keyword and location on jobs tab
@@ -70,6 +70,15 @@ class ApplyLinkedin:
         discard_button = self.driver.find_element(By.XPATH, '//button[contains(@data-control-name, "discard_application_confirm_btn")]')
         discard_button.click()
         print("exited out of this application, moving to the next one")
+
+    def finish_submission(self):
+        try:
+            cancel_button = self.driver.find_element(By.XPATH, '//li-icon[contains(@type, "cancel-icon")]')
+            cancel_button.click()
+            print("finished submitting application, moving to the next one")
+        except (ElementNotInteractableException, NoSuchElementException):
+            print("application already exited, moving to the next one")
+
     
     
     def easyApply(self):
@@ -93,6 +102,7 @@ class ApplyLinkedin:
             while not submitted:
                 try:
                     phone_number_input = self.driver.find_element(By.XPATH, '//input[contains(@id, "phoneNumber")]')
+                    phone_number_input.clear()
                     phone_number_input.send_keys("2677132751")
                 except:
                     print("unable to find phone number input!")
@@ -112,13 +122,21 @@ class ApplyLinkedin:
                 except:
                     print("no language selection")
 
-                # yes/no
+                # yes/no select
                 try:
                     select_yes_prompts = self.driver.find_elements(By.XPATH, '//select[@aria-required="true"]/option[text()="Yes"]')
                     for select_yes in select_yes_prompts:
-                        select_yes_prompts.click()
+                        select_yes.click()
                 except:
                     print("no yes/no selection")
+
+                # yes/no radio
+                try:
+                    select_yes_radio_buttons = self.driver.find_elements(By.XPATH, '//input[@type="radio"][@value="Yes"]')
+                    for select_yes in select_yes_radio_buttons:
+                        select_yes.click()
+                except:
+                    print("no yes/no radio buttons")
 
                 # years of experience
                 try:
@@ -157,7 +175,7 @@ class ApplyLinkedin:
 
                 time.sleep(5)
             time.sleep(2)
-            self.exit_application()
+            self.finish_submission()
             time.sleep(3)
 
         # allfilter_button = self.driver.find_element('xpath','/html/body/div[5]/div[3]/div[4]/section/div/section/div/div/div/div/div/button')
